@@ -34,4 +34,14 @@ IMAGE_INSTALL:append = " \
     libgcc \
     libstdc++ \
     libatomic \
+    kernel-module-rtl8188eu \
+    linux-firmware \
+    dhcpcd \
+    iw \
+    wpa-supplicant \
+    wireless-regdb-static \
 "
+
+KERNEL_MODULE_AUTOLOAD:append = " \
+    rtl8188eu \
+    "
