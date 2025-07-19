@@ -40,6 +40,10 @@ IMAGE_INSTALL:append = " \
     iw \
     wpa-supplicant \
     wireless-regdb-static \
+    packagegroup-core-buildessential \
+    nano \
+    i2c-tools \
+    custom-banner \
 "
 
 KERNEL_MODULE_AUTOLOAD:append = " \
