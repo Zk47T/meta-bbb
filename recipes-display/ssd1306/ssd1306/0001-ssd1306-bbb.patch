@@ -1,0 +1,25 @@
+From 3d78f4cab4221dca6a06b2cbaf0ddd794c627522 Mon Sep 17 00:00:00 2001
+From: Zk47T <zizuzacker@gmail.com>
+Date: Sat, 19 Jul 2025 20:19:46 +0700
+Subject: [PATCH] ssd1306-bbb
+
+---
+ src/main.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/main.c b/src/main.c
+index 5e1136d..628dc29 100644
+--- a/src/main.c
++++ b/src/main.c
+@@ -8,7 +8,7 @@
+ #include <stdint.h>
+ 
+ #define I2C_ADDR 0x3C
+-#define I2C_DEV "/dev/i2c-1"
++#define I2C_DEV "/dev/i2c-2"
+ 
+ int i2c_fd;
+ 
+-- 
+2.34.1
+

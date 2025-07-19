@@ -44,6 +44,7 @@ IMAGE_INSTALL:append = " \
     nano \
     i2c-tools \
     custom-banner \
+    opkg \
 "
 
 KERNEL_MODULE_AUTOLOAD:append = " \
