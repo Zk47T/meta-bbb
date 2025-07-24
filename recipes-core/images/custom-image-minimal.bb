@@ -20,6 +20,7 @@ EXTRA_USERS_PARAMS = "\
     usermod -p '${PASSWD}' root; \
     "
 
+#SSH VSCode server package
 IMAGE_INSTALL:append = " \
     dhcpcd \
     iproute2 \
@@ -34,12 +35,20 @@ IMAGE_INSTALL:append = " \
     libgcc \
     libstdc++ \
     libatomic \
+"
+
+#USB WiFi package
+IMAGE_INSTALL:append = " \
     kernel-module-rtl8188eu \
     linux-firmware \
     dhcpcd \
     iw \
     wpa-supplicant \
     wireless-regdb-static \
+"
+
+#SSD1306 OLED package
+IMAGE_INSTALL:append = " \
     packagegroup-core-buildessential \
     nano \
     i2c-tools \
@@ -49,6 +58,15 @@ IMAGE_INSTALL:append = " \
     kernel-modules \
     fbset \
     con2fbmap \
+"
+
+#eMMC script
+IMAGE_INSTALL:append = " \
+    rsync \
+    dosfstools \
+    u-boot-tools \
+    util-linux \
+    e2fsprogs \
 "
 
 KERNEL_MODULE_AUTOLOAD:append = " \
