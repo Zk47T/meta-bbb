@@ -45,6 +45,10 @@ IMAGE_INSTALL:append = " \
     i2c-tools \
     custom-banner \
     opkg \
+    dtc \
+    kernel-modules \
+    fbset \
+    con2fbmap \
 "
 
 KERNEL_MODULE_AUTOLOAD:append = " \

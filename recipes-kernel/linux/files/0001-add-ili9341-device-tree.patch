@@ -1,0 +1,124 @@
+diff --git a/am335x-boneblack.dts.orig b/am335x-boneblack.dts
+index ea205b7..8ded384 100644
+--- a/arch/arm/boot/dts/am335x-boneblack.dts
++++ b/arch/arm/boot/dts/am335x-boneblack.dts
+@@ -178,3 +178,119 @@
+ &baseboard_eeprom {
+ 	vcc-supply = <&ldo4_reg>;
+ };
++&ocp {
++	P9_25_pinmux { status = "disabled"; };	/* lcd reset */
++	P9_16_pinmux { status = "disabled"; };  /* lcd pwm backlight (OPTIONAL) */
++	P9_27_pinmux { status = "disabled"; };	/* lcd dc */
++//	P9_23_pinmux { status = "disabled"; };	/* lcd gpio backlight (OPTIONAL) */
++	P9_28_pinmux { status = "disabled"; };	/* spi1_cs0 */
++	P9_29_pinmux { status = "disabled"; };	/* spi1_d0 */
++	P9_30_pinmux { status = "disabled"; };	/* spi1_d1 */
++	P9_31_pinmux { status = "disabled"; };	/* spi1_sclk */
++};
++
++&am33xx_pinmux {
++	bb_spi1_pins: pinmux_bb_spi1_pins {
++		pinctrl-single,pins = <
++			0x190 0x33  /* spi1_sclk: P9_31 = mcasp0_aclkx, mode3 */
++			0x194 0x33  /* spi1_d0:   P9_29 = mcasp0_fsx,   mode3 */
++			0x198 0x13  /* spi1_d1:   P9_30 = mcasp0_axr0,  mode3 */
++			0x19C 0x13  /* spi1_cs0:  P9_28 = mcasp0_ahclkr, mode3 */
++			0x1A4 0x17  /* P9_27 = gpio3_19 (dc), mode7 */
++			0x034 0x07  /* P8_11 = gpio0_13 (reset), mode7 */
++		>;
++	};
++
++	backlight_pwm_pins: pinmux_backlight_pwm_pins {
++		pinctrl-single,pins = <
++			0x048 0x06  /* P9_14 = gpmc_a2.ehrpwm1b, mode6 */
++		>;
++	};
++};
++
++&epwmss1 {
++	status = "okay";
++};
++&ehrpwm1 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&backlight_pwm_pins>;
++	status = "okay";
++};
++
++&spi1 {
++	#address-cells = <1>;
++	#size-cells = <0>;
++
++	status = "okay";
++	pinctrl-names = "default";
++	pinctrl-0 = <&bb_spi1_pins>;
++	channel@0{
++        status = "disabled";
++		reg = <0>;
++	};
++	display@0{
++		status = "okay";
++		compatible = "adafruit,yx240qv29", "ilitek,ili9341";
++		reg = <0>;
++		spi-max-frequency = <16000000>;
++		dc-gpios    = <&gpio3 19 0>;   // lcd dc    P9.27 gpio3[19]
++		reset-gpios = <&gpio0 13 1>;   // lcd reset P8_11
++		// backlight is optional
++		// choose either pwm or gpio control
++		//backlight = <&backlight_gpio>; // lcd lite  P9.23 gpio1[17]
++		backlight = <&backlight_pwm>;    // lcd lite  P9.16 gpmc_a2.ehrpwm1b
++		// refer to https://elinux.org/Beagleboard:Cape_Expansion_Headers
++		// rotation is optional
++		rotation = <270>;
++		buswidth = <8>;
++	};
++};
++
++&{/} {
++	bl_reg: backlight-regulator {
++		compatible = "regulator-fixed";
++		regulator-name = "backlight";
++		regulator-always-on;
++		regulator-boot-on;
++	};
++	memory@80000000 {
++		device_type = "memory";
++		reg = <0x80000000 0x20000000>;
++	};
++	clk_mcasp0_fixed: clk_mcasp0_fixed {
++		#clock-cells = <0>;
++		compatible = "fixed-clock";
++		clock-frequency = <24576000>;
++	};
++	
++	clk_mcasp0: clk_mcasp0 {
++		#clock-cells = <0>;
++		compatible = "gpio-gate-clock";
++		clocks = <&clk_mcasp0_fixed>;
++		enable-gpios = <&gpio1 27 0>;
++	};
++	backlight_pwm: backlight_pwm {
++		// P9.14 <--> lite (pwm-backlight EHRPWM1B)
++		status = "okay";
++		compatible = "pwm-backlight";
++		pwms = <&ehrpwm1 0 500000 0>;	// First digit: 0 for A side of pwm, 1 for B side
++										// 500000 is the PWM period in ns
++										// https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/devicetree/bindings/pwm/pwm.txt
++		brightness-levels = <
++			0  1  2  3  4  5  6  7  8  9
++			10 11 12 13 14 15 16 17 18 19
++			20 21 22 23 24 25 26 27 28 29
++			30 31 32 33 34 35 36 37 38 39
++			40 41 42 43 44 45 46 47 48 49
++			50 51 52 53 54 55 56 57 58 59
++			60 61 62 63 64 65 66 67 68 69
++			70 71 72 73 74 75 76 77 78 79
++			80 81 82 83 84 85 86 87 88 89
++			90 91 92 93 94 95 96 97 98 99
++			100
++		>;
++		default-brightness-level = <100>;
++		power-supply = <&bl_reg>;
++	};
++};
++
