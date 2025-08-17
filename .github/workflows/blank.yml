@@ -20,17 +20,34 @@ jobs:
     # The type of runner that the job will run on
     runs-on: self-hosted
 
+    env:
+      LOG_DIR: /srv/ci-logs/meta-bbb
+      LOG_FILE: /srv/ci-logs/meta-bbb/${{ github.run_id }}-${{ github.run_attempt }}.log
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
 
-      # Runs a single command using the runners shell
-      - name: Run a one-line script
-        run: echo Hello, world!
+      - name: Ensure log dir exists
+        run: mkdir -p "$LOG_DIR"
 
-      # Runs a set of commands using the runners shell
-      - name: Run a multi-line script
+      - name: Write to host log (and console)
+        shell: bash
         run: |
-          echo Add other actions to build,
-          echo test, and deploy your project.
+          {
+            echo "==== $(date -Is) ===="
+            echo "Repo: ${{ github.repository }}"
+            echo "Commit: ${{ github.sha }}"
+            echo "Runner: $RUNNER_NAME ($RUNNER_OS/$RUNNER_ARCH) on $(hostname)"
+            echo "----- your step output -----"
+            echo "Hello, world!"
+            echo "Add other actions to build, test, and deploy your project."
+            echo
+          } | tee -a "$LOG_FILE"
+          echo "Wrote log to: $LOG_FILE"
+
+      # (optional) Also upload the log as an artifact for easy download in the UI
+      - uses: actions/upload-artifact@v4
+        with:
+          name: host-logs
+          path: ${{ env.LOG_FILE }}
+          if-no-files-found: ignore
