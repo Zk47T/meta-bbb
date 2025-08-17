@@ -35,6 +35,7 @@ IMAGE_INSTALL:append = " \
     libgcc \
     libstdc++ \
     libatomic \
+    curl \
 "
 
 #USB WiFi package

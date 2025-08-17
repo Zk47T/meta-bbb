@@ -60,7 +60,7 @@ jobs:
             # Use specific build dir so we don't clobber others
             source poky/oe-init-build-env "$BUILD_DIR"
             bitbake --version
-            bitbake custom-image
+            bitbake custom-image-minimal
             echo "----- bitbake end -----"
           } 2>&1 | tee -a "$LOG_FILE"
           echo "Wrote log to: $LOG_FILE"
