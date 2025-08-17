@@ -26,6 +26,7 @@ jobs:
       BUILD_DIR: /home/zk47/Learning/yocto-bbb/build-bbb
       LOG_DIR: /srv/ci-logs/meta-bbb
       LOG_FILE: /srv/ci-logs/meta-bbb/${{ github.run_id }}-${{ github.run_attempt }}.log
+      BBSERVER: ""
 
     steps:
       # Check out the PR's exact commit into the Actions workspace
