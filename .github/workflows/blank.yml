@@ -1,66 +1,84 @@
-name: CI
+# .github/workflows/verify-build.yml
+name: Verify Yocto build (PR → main)
 
 on:
-  # Build the merge result for any PR that targets main
   pull_request:
     branches: [ "main" ]
     types: [opened, synchronize, reopened, ready_for_review]
-
-  # Also build when you push to ci-cd (useful pre-PR)
-  push:
-    branches: [ "ci-cd" ]
-
-  # Manual run
   workflow_dispatch:
 
+# Ensure only one Yocto build runs at a time on this host
 concurrency:
-  group: verify-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: yocto-bbb
+  cancel-in-progress: false
+
+permissions:
+  contents: read
 
 jobs:
   build:
-    # run on PRs to main, pushes to ci-cd, or manual
-    if: github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: self-hosted
+    timeout-minutes: 600  # adjust for your build time
 
     env:
+      YOCTO_TOP: /home/zk47/Learning/yocto-bbb
+      LAYER_DIR: /home/zk47/Learning/yocto-bbb/meta-bbb
+      BUILD_DIR: /home/zk47/Learning/yocto-bbb/build-bbb
       LOG_DIR: /srv/ci-logs/meta-bbb
       LOG_FILE: /srv/ci-logs/meta-bbb/${{ github.run_id }}-${{ github.run_attempt }}.log
 
     steps:
-      # For pull_request events, checkout@v4 fetches the PR's merge commit by default.
-      - uses: actions/checkout@v4
+      # Check out the PR's exact commit into the Actions workspace
+      - name: Checkout PR code
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Ensure log dir exists
         run: mkdir -p "$LOG_DIR"
 
-      - name: Context
+      # Sync the PR code into your *local* meta-bbb layer used by Yocto
+      # We exclude .git so we don't break your local repo
+      - name: Sync layer into local Yocto tree
         run: |
-          echo "event: ${{ github.event_name }}"
-          echo "ref:   ${{ github.ref }}"
-          echo "base:  ${{ github.base_ref }}"
-          echo "head:  ${{ github.head_ref }}"
+          rsync -a --delete --exclude '.git' "$GITHUB_WORKSPACE/" "$LAYER_DIR/"
+          echo "meta-bbb now at: $(git -C "$LAYER_DIR" rev-parse --short HEAD || echo 'workspace copy (no .git changes)')"
 
-      - name: Write to host log (and console)
+      - name: Build image
         shell: bash
         run: |
+          set -euo pipefail
           {
             echo "==== $(date -Is) ===="
             echo "Repo: ${{ github.repository }}"
-            echo "Commit: ${{ github.sha }}"
+            echo "PR: #${{ github.event.pull_request.number }} (${{ github.head_ref }} -> ${{ github.base_ref }})"
             echo "Runner: $RUNNER_NAME ($RUNNER_OS/$RUNNER_ARCH) on $(hostname)"
-            echo "----- your step output -----"
-            echo "Hello, world!"
-            echo "Add other actions to build, test, and deploy your project."
-            echo
-          } | tee -a "$LOG_FILE"
+            echo "Using YOCTO_TOP=$YOCTO_TOP BUILD_DIR=$BUILD_DIR LAYER_DIR=$LAYER_DIR"
+            echo "----- bitbake start -----"
+            cd "$YOCTO_TOP"
+            # Use specific build dir so we don't clobber others
+            source poky/oe-init-build-env "$BUILD_DIR"
+            bitbake --version
+            bitbake custom-image
+            echo "----- bitbake end -----"
+          } 2>&1 | tee -a "$LOG_FILE"
           echo "Wrote log to: $LOG_FILE"
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload build log
         if: always()
+        uses: actions/upload-artifact@v4
         with:
-          name: host-logs
+          name: yocto-build-log-${{ github.run_id }}
           path: ${{ env.LOG_FILE }}
-          if-no-files-found: ignore
+
+      # Cleanly restore local layer to main so the next build starts from a known state
+      - name: Restore meta-bbb to main
+        if: always()
+        run: |
+          cd "$LAYER_DIR"
+          if [ -d .git ]; then
+            git fetch origin
+            git reset --hard origin/main
+            git clean -fdx
+          fi
