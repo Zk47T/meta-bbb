@@ -27,6 +27,8 @@ jobs:
       LOG_DIR: /srv/ci-logs/meta-bbb
       LOG_FILE: /srv/ci-logs/meta-bbb/${{ github.run_id }}-${{ github.run_attempt }}.log
       BBSERVER: ""
+      ZSH_NAME: ""
+      OEROOT: ""
 
     steps:
       # Check out the PR's exact commit into the Actions workspace
@@ -49,7 +51,7 @@ jobs:
       - name: Build image
         shell: bash
         run: |
-          set -eo pipefail
+          set -euo pipefail
           {
             echo "==== $(date -Is) ===="
             echo "Repo: ${{ github.repository }}"
@@ -57,22 +59,14 @@ jobs:
             echo "Runner: $RUNNER_NAME ($RUNNER_OS/$RUNNER_ARCH) on $(hostname)"
             echo "Using YOCTO_TOP=$YOCTO_TOP BUILD_DIR=$BUILD_DIR LAYER_DIR=$LAYER_DIR"
             echo "----- bitbake start -----"
-
             cd "$YOCTO_TOP"
-
-            # Avoid nounset breakage inside Poky env scripts
-            set +u
-            # Predefine commonly-probed vars so test expressions don't explode
-            : "${ZSH_NAME:=}"
-            : "${BBSERVER:=}"
-            # IMPORTANT: must *source* the env script (do NOT run with sh/bash)
-            . "$YOCTO_TOP/poky/oe-init-build-env" "$BUILD_DIR"
-            set -u
-
+            # Use specific build dir so we don't clobber others
+            source poky/oe-init-build-env "$BUILD_DIR"
             bitbake --version
-            bitbake custom-image
+            bitbake custom-image-minimal
             echo "----- bitbake end -----"
           } 2>&1 | tee -a "$LOG_FILE"
+          echo "Wrote log to: $LOG_FILE"
 
       - name: Upload build log
         if: always()
